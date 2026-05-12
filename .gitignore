@@ -2,6 +2,7 @@ CLAUDE.md
 Notes/
 CMAPSSData/
 .venv/
+.vscode/
 __pycache__/
 *.pyc
 results/samples/
