@@ -1,0 +1,7 @@
+CLAUDE.md
+Notes/
+CMAPSSData/
+.venv/
+__pycache__/
+*.pyc
+results/samples/
