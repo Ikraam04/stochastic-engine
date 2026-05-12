@@ -110,9 +110,11 @@ for plot_i, s_idx in enumerate(signal_sensors):
 for plot_i in range(len(signal_sensors), len(axes)):
     axes[plot_i].set_visible(False)
 
-fig.suptitle("non-flat sensors - 10 engines overlaid")
+fig.suptitle("non-flat sensors - 10 engines overlaid") 
 plt.tight_layout()
 out = f"{out_dir}/signal_sensors_overlay.png"
 plt.savefig(out, dpi=120)
 plt.close()
 print(f"saved {out}")
+
+#based on the above, s11 is the best sensor - it has a strong correlation with cycle and decent independence from the other sensors. we'll use it as our health proxy in the HMC sampler.
