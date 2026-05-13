@@ -3,7 +3,10 @@ import matplotlib.pyplot as plt
 import os
 
 data_path = "CMAPSSData/train_FD001.txt"
-out_dir = "results/figures"
+
+# change this to switch runs - all outputs go into results/{run_id}/
+run_id  = "E1_S11"
+out_dir = f"results/{run_id}/figures"
 os.makedirs(out_dir, exist_ok=True)
 
 # col layout: unit, cycle, os1, os2, os3, s1...s21

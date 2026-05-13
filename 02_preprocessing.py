@@ -5,9 +5,13 @@ import os
 #sanity check: load the data, filter to one engine, normalise s11, and plot before/after normalisation, just for s11 on engine 1 for now.
 
 data_path = "CMAPSSData/train_FD001.txt"
-out_dir = "results/figures"
-os.makedirs(out_dir, exist_ok=True)
-os.makedirs("results/samples", exist_ok=True)
+
+# change this to switch runs - all outputs go into results/{run_id}/
+run_id   = "E1_S11"
+out_dir  = f"results/{run_id}/figures"
+samp_dir = f"results/{run_id}/samples"
+os.makedirs(out_dir,  exist_ok=True)
+os.makedirs(samp_dir, exist_ok=True)
 
 # col layout: unit(0), cycle(1), os1-3(2-4), s1(5), s2(6) ... s11(15) ... s21(25)
 data = np.loadtxt(data_path)
@@ -53,12 +57,13 @@ axes[1].set_ylabel("sensor value")
 fig.suptitle(f"engine {engine_id} - s11 before and after normalisation")
 plt.tight_layout()
 out = f"{out_dir}/preprocessing_s11_engine{engine_id}.png"
+
 plt.savefig(out, dpi=120)
 plt.close()
 print(f"saved {out}")
 
 # --- save clean arrays ---
 # these are what 03_hmc_sampler.py will load
-np.save(f"results/samples/cycles_engine{engine_id}.npy", cycles)
-np.save(f"results/samples/y_obs_engine{engine_id}.npy", s11_norm)
-print(f"saved cycles and y_obs arrays for engine {engine_id}")
+np.save(f"{samp_dir}/cycles_engine{engine_id}.npy", cycles)
+np.save(f"{samp_dir}/y_obs_engine{engine_id}.npy", s11_norm)
+print(f"saved cycles and y_obs arrays to {samp_dir}")

@@ -1,8 +1,12 @@
 import numpy as np
+import os
 
-# load the clean arrays from preprocessing
-cycles = np.load("results/samples/cycles_engine1.npy")
-y_obs  = np.load("results/samples/y_obs_engine1.npy")
+# change this to switch runs - must match what 02_preprocessing.py used
+run_id   = "E1_S11"
+samp_dir = f"results/{run_id}/samples"
+
+cycles = np.load(f"{samp_dir}/cycles_engine1.npy")
+y_obs  = np.load(f"{samp_dir}/y_obs_engine1.npy")
 
 #  priors
 # these are on the normalised scale (y_obs is in [0,1], mean ~0.37)
@@ -132,9 +136,7 @@ print(f"\nalpha — mean: {alpha_samples.mean():.4f}  std: {alpha_samples.std():
 print(f"beta  — mean: {beta_samples.mean():.4f}  std: {beta_samples.std():.4f}")
 print(f"delta_H — mean: {delta_H_vals.mean():.4f}  (should be near 0)")
 
-# save samples for diagnostics and rul prediction
-import os
-os.makedirs("results/samples", exist_ok=True)
-np.save("results/samples/hmc_samples_engine1.npy", samples)
-np.save("results/samples/delta_H_engine1.npy", delta_H_vals)
-print("\nsamples saved to results/samples/")
+os.makedirs(samp_dir, exist_ok=True)
+np.save(f"{samp_dir}/hmc_samples_engine1.npy", samples)
+np.save(f"{samp_dir}/delta_H_engine1.npy", delta_H_vals)
+print(f"samples saved to {samp_dir}")

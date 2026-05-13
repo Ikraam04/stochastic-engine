@@ -2,8 +2,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 
-cycles = np.load("results/samples/cycles_engine1.npy")
-y_obs  = np.load("results/samples/y_obs_engine1.npy")
+# change this to switch runs - must match preprocessing
+run_id   = "E1_S11"
+samp_dir = f"results/{run_id}/samples"
+fig_dir  = f"results/{run_id}/figures"
+
+cycles = np.load(f"{samp_dir}/cycles_engine1.npy")
+y_obs  = np.load(f"{samp_dir}/y_obs_engine1.npy")
 
 # same priors and settings as the sampler
 mu_alpha, sigma_alpha = 0.1, 0.2
@@ -142,7 +147,7 @@ def update(frame):
 anim = animation.FuncAnimation(fig, update, frames=n_animate, interval=80, blit=True)
 plt.show()
 
-out = "results/figures/hmc_animation.gif"
+out = f"{fig_dir}/hmc_animation.gif"
 print("rendering animation... (this takes a minute)")
 #anim.save(out, writer="pillow", fps=12)
 plt.close()

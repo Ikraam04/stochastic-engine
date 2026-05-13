@@ -2,10 +2,14 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 
-os.makedirs("results/figures", exist_ok=True)
+# change this to switch runs - must match the sampler run
+run_id   = "E1_S11"
+fig_dir  = f"results/{run_id}/figures"
+samp_dir = f"results/{run_id}/samples"
+os.makedirs(fig_dir, exist_ok=True)
 
-samples   = np.load("results/samples/hmc_samples_engine1.npy")
-delta_H   = np.load("results/samples/delta_H_engine1.npy")
+samples   = np.load(f"{samp_dir}/hmc_samples_engine1.npy")
+delta_H   = np.load(f"{samp_dir}/delta_H_engine1.npy")
 
 burn_in   = 500
 post      = samples[burn_in:]   # discard burn-in before checking anything
@@ -31,7 +35,7 @@ axes[1].set_xlabel("iteration (post burn-in)")
 axes[1].set_title(f"trace - beta  (mean={beta_s.mean():.4f}, std={beta_s.std():.4f})")
 
 plt.tight_layout()
-plt.savefig("results/figures/trace_plot.png", dpi=120)
+plt.savefig(f"{fig_dir}/trace_plot.png", dpi=120)
 plt.close()
 print("saved trace_plot.png")
 
@@ -47,7 +51,7 @@ ax.set_ylabel("count")
 ax.set_title("energy conservation - should be centred near 0")
 ax.legend()
 plt.tight_layout()
-plt.savefig("results/figures/delta_H.png", dpi=120)
+plt.savefig(f"{fig_dir}/delta_H.png", dpi=120)
 plt.close()
 print("saved delta_H.png")
 
@@ -82,7 +86,7 @@ print(f"\nESS alpha: {ess_alpha:.0f}  {'ok' if ess_alpha > 400 else '!! too low'
 print(f"ESS beta:  {ess_beta:.0f}  {'ok' if ess_beta  > 400 else '!! too low'}")
 print(f"(want > 400 for reliable posterior estimates)")
 
-# --- autocorrelation plot ---
+# AC plot
 # shows how correlated each sample is with the one k steps before it
 # drops to zero quickly = good mixing. stays high = chain is stuck crawling
 max_lag = 100
@@ -113,11 +117,11 @@ axes[1].set_xlabel("lag")
 axes[1].set_ylim(-0.2, 1.0)
 
 plt.tight_layout()
-plt.savefig("results/figures/autocorrelation.png", dpi=120)
+plt.savefig(f"{fig_dir}/autocorrelation.png", dpi=120)
 plt.close()
 print("saved autocorrelation.png")
 
-# --- posterior histograms ---
+# posterior histograms
 # shows the shape of what we actually sampled - should look roughly gaussian
 # the spread is our uncertainty about alpha and beta
 fig, axes = plt.subplots(1, 2, figsize=(12, 4))
@@ -139,11 +143,11 @@ axes[1].set_xlabel("beta")
 axes[1].legend(fontsize=8)
 
 plt.tight_layout()
-plt.savefig("results/figures/posterior_histograms.png", dpi=120)
+plt.savefig(f"{fig_dir}/posterior_histograms.png", dpi=120)
 plt.close()
 print("saved posterior_histograms.png")
 
-# --- quick posterior summary ---
+# posterior summary
 print(f"\nposterior summary (post burn-in):")
 print(f"  alpha: mean={alpha_s.mean():.4f}  std={alpha_s.std():.4f}  90% CI=[{np.percentile(alpha_s,5):.4f}, {np.percentile(alpha_s,95):.4f}]")
 print(f"  beta:  mean={beta_s.mean():.4f}  std={beta_s.std():.4f}  90% CI=[{np.percentile(beta_s,5):.4f}, {np.percentile(beta_s,95):.4f}]")
