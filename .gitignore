@@ -5,4 +5,4 @@ CMAPSSData/
 .vscode/
 __pycache__/
 *.pyc
-results/samples/
+results/**/samples/
