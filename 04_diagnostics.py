@@ -82,6 +82,67 @@ print(f"\nESS alpha: {ess_alpha:.0f}  {'ok' if ess_alpha > 400 else '!! too low'
 print(f"ESS beta:  {ess_beta:.0f}  {'ok' if ess_beta  > 400 else '!! too low'}")
 print(f"(want > 400 for reliable posterior estimates)")
 
+# --- autocorrelation plot ---
+# shows how correlated each sample is with the one k steps before it
+# drops to zero quickly = good mixing. stays high = chain is stuck crawling
+max_lag = 100
+
+def get_acf(chain, max_lag):
+    n = len(chain)
+    c = chain - chain.mean()
+    acf_full = np.correlate(c, c, mode="full")[n-1:]
+    acf_full = acf_full / acf_full[0]
+    return acf_full[:max_lag]
+
+acf_alpha = get_acf(alpha_s, max_lag)
+acf_beta  = get_acf(beta_s,  max_lag)
+
+fig, axes = plt.subplots(1, 2, figsize=(12, 4))
+
+axes[0].bar(range(max_lag), acf_alpha, color="steelblue", width=0.8)
+axes[0].axhline(0, color="black", linewidth=0.8)
+axes[0].set_title(f"autocorrelation - alpha  (ESS={ess_alpha:.0f})")
+axes[0].set_xlabel("lag")
+axes[0].set_ylabel("correlation")
+axes[0].set_ylim(-0.2, 1.0)
+
+axes[1].bar(range(max_lag), acf_beta, color="tomato", width=0.8)
+axes[1].axhline(0, color="black", linewidth=0.8)
+axes[1].set_title(f"autocorrelation - beta  (ESS={ess_beta:.0f})")
+axes[1].set_xlabel("lag")
+axes[1].set_ylim(-0.2, 1.0)
+
+plt.tight_layout()
+plt.savefig("results/figures/autocorrelation.png", dpi=120)
+plt.close()
+print("saved autocorrelation.png")
+
+# --- posterior histograms ---
+# shows the shape of what we actually sampled - should look roughly gaussian
+# the spread is our uncertainty about alpha and beta
+fig, axes = plt.subplots(1, 2, figsize=(12, 4))
+
+axes[0].hist(alpha_s, bins=60, color="steelblue", edgecolor="white", linewidth=0.3, density=True)
+axes[0].axvline(alpha_s.mean(), color="red",    linewidth=1.2, linestyle="--", label=f"mean={alpha_s.mean():.4f}")
+axes[0].axvline(np.percentile(alpha_s, 5),  color="orange", linewidth=1, linestyle=":", label="5/95%")
+axes[0].axvline(np.percentile(alpha_s, 95), color="orange", linewidth=1, linestyle=":")
+axes[0].set_title("posterior - alpha (engine starting health)")
+axes[0].set_xlabel("alpha")
+axes[0].legend(fontsize=8)
+
+axes[1].hist(beta_s, bins=60, color="tomato", edgecolor="white", linewidth=0.3, density=True)
+axes[1].axvline(beta_s.mean(), color="red",    linewidth=1.2, linestyle="--", label=f"mean={beta_s.mean():.4f}")
+axes[1].axvline(np.percentile(beta_s, 5),  color="orange", linewidth=1, linestyle=":", label="5/95%")
+axes[1].axvline(np.percentile(beta_s, 95), color="orange", linewidth=1, linestyle=":")
+axes[1].set_title("posterior - beta (degradation rate)")
+axes[1].set_xlabel("beta")
+axes[1].legend(fontsize=8)
+
+plt.tight_layout()
+plt.savefig("results/figures/posterior_histograms.png", dpi=120)
+plt.close()
+print("saved posterior_histograms.png")
+
 # --- quick posterior summary ---
 print(f"\nposterior summary (post burn-in):")
 print(f"  alpha: mean={alpha_s.mean():.4f}  std={alpha_s.std():.4f}  90% CI=[{np.percentile(alpha_s,5):.4f}, {np.percentile(alpha_s,95):.4f}]")
