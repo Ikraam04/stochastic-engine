@@ -18,8 +18,8 @@ sigma_noise =  0.15   # sensor noise on normalised scale
 # hmc hyperparameters
 epsilon  = 0.014   # tuned to hit ~75% acceptance rate
 L        = 20      # leapfrog steps per iteration
-n_samples = 2000
-burn_in   = 500
+n_samples = 10000
+burn_in   = 1000
 
 
 def log_likelihood(alpha, beta, y_obs, cycles, sigma):
