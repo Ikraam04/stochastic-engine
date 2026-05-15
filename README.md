@@ -89,12 +89,18 @@ CMAPSSData/
 - [x] HMC sampler: implement leapfrog, acceptance step, full sampler loop
 - [x] Diagnostics: verify chain health before trusting any samples
 - [x] RUL prediction: turn posterior samples into a RUL distribution
-- [ ] Evaluation: test against all 100 engines, compute RMSE
+- [x] Evaluation: test against all 100 engines, compute RMSE
 
 ---
+
 
 ## Constraints
 
 - NumPy only for the sampler: no PyMC, Stan, or probabilistic programming libraries
 - No automatic differentiation: all gradients derived and implemented by hand
 - Naive implementation first, optimisations later
+
+
+# UPDATE
+
+SO LINEAR MODEL IS DOO DOO I AM CHANGING IT. CHECK changes.md (to be implemented tho)
