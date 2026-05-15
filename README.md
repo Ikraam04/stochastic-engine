@@ -85,10 +85,10 @@ CMAPSSData/
 ## Where We Are
 
 - [x] EDA: loaded dataset, computed per-sensor correlation with cycle, selected `s11` as the health proxy (highest degradation signal, |corr| = 0.634)
-- [ ] Preprocessing:  normalise s11, prepare clean arrays for the sampler
-- [ ] HMC sampler: implement leapfrog, acceptance step, full sampler loop
-- [ ] Diagnostics: verify chain health before trusting any samples
-- [ ] RUL prediction: turn posterior samples into a RUL distribution
+- [x] Preprocessing:  normalise s11, prepare clean arrays for the sampler
+- [x] HMC sampler: implement leapfrog, acceptance step, full sampler loop
+- [x] Diagnostics: verify chain health before trusting any samples
+- [x] RUL prediction: turn posterior samples into a RUL distribution
 - [ ] Evaluation: test against all 100 engines, compute RMSE
 
 ---
