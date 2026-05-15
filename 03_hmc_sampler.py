@@ -1,10 +1,11 @@
 import numpy as np
 import os
 
-# change this to switch runs - must match what 02_preprocessing.py used
+# change these to switch runs - must match what 02_preprocessing.py used
+model     = "linear"
 run_id    = "E10_S11"
 engine_id = 10
-samp_dir  = f"results/{run_id}/samples"
+samp_dir  = f"results/{model}/{run_id}/samples"
 
 cycles = np.load(f"{samp_dir}/cycles_engine{engine_id}.npy")
 y_obs  = np.load(f"{samp_dir}/y_obs_engine{engine_id}.npy")

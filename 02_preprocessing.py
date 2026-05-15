@@ -2,11 +2,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 
-# change this to switch runs - all outputs go into results/{run_id}/
+# change these to switch runs
+model     = "linear"
 run_id    = "E10_S11"
 engine_id = 10
-out_dir   = f"results/{run_id}/figures"
-samp_dir  = f"results/{run_id}/samples"
+out_dir   = f"results/{model}/{run_id}/figures"
+samp_dir  = f"results/{model}/{run_id}/samples"
 os.makedirs(out_dir,  exist_ok=True)
 os.makedirs(samp_dir, exist_ok=True)
 

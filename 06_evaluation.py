@@ -3,7 +3,8 @@ import matplotlib.pyplot as plt
 import os
 from multiprocessing import Pool
 
-fig_dir = "results/fleet_S11/figures"
+model   = "linear"
+fig_dir = f"results/{model}/fleet_S11/figures"
 os.makedirs(fig_dir, exist_ok=True)
 
 # load data once — workers get their slice passed in as arrays, not the full file

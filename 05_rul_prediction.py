@@ -2,11 +2,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 
-# change this to switch runs
-run_id    = "E20_S11"
-engine_id = 20
-samp_dir  = f"results/{run_id}/samples"
-fig_dir   = f"results/{run_id}/figures"
+# change these to switch runs
+model     = "linear"
+run_id    = "E10_S11"
+engine_id = 10
+samp_dir  = f"results/{model}/{run_id}/samples"
+fig_dir   = f"results/{model}/{run_id}/figures"
 os.makedirs(fig_dir, exist_ok=True)
 
 samples        = np.load(f"{samp_dir}/hmc_samples_engine{engine_id}.npy")
