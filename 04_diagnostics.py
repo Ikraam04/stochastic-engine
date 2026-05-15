@@ -3,15 +3,16 @@ import matplotlib.pyplot as plt
 import os
 
 # change this to switch runs - must match the sampler run
-run_id   = "E1_S11"
+run_id    = "E20_S11"
+engine_id = 20
 fig_dir  = f"results/{run_id}/figures"
 samp_dir = f"results/{run_id}/samples"
 os.makedirs(fig_dir, exist_ok=True)
 
-samples   = np.load(f"{samp_dir}/hmc_samples_engine1.npy")
-delta_H   = np.load(f"{samp_dir}/delta_H_engine1.npy")
+samples   = np.load(f"{samp_dir}/hmc_samples_engine{engine_id}.npy")
+delta_H   = np.load(f"{samp_dir}/delta_H_engine{engine_id}.npy")
 
-burn_in   = 500
+burn_in   = 1000
 post      = samples[burn_in:]   # discard burn-in before checking anything
 alpha_s   = post[:, 0]
 beta_s    = post[:, 1]

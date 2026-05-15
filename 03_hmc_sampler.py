@@ -2,25 +2,26 @@ import numpy as np
 import os
 
 # change this to switch runs - must match what 02_preprocessing.py used
-run_id   = "E1_S11"
-samp_dir = f"results/{run_id}/samples"
+run_id    = "E10_S11"
+engine_id = 10
+samp_dir  = f"results/{run_id}/samples"
 
-cycles = np.load(f"{samp_dir}/cycles_engine1.npy")
-y_obs  = np.load(f"{samp_dir}/y_obs_engine1.npy")
+cycles = np.load(f"{samp_dir}/cycles_engine{engine_id}.npy")
+y_obs  = np.load(f"{samp_dir}/y_obs_engine{engine_id}.npy")
 
 #  priors
 # these are on the normalised scale (y_obs is in [0,1], mean ~0.37)
 # alpha: where s11 starts. mean of y_obs is ~0.37 so prior centres there
 # beta: how fast s11 changes per cycle. s11 increases with degradation so beta is positive
 # sigma: sensor noise on the normalised scale
-mu_alpha    =  0.1    # engine starts near 0 on normalised scale (fresh = low s11)
-sigma_alpha =  0.2
-mu_beta     =  0.6    # s11 rises ~0.6 units over normalised cycle range
-sigma_beta  =  0.3
+mu_alpha    =  0.21   # mean OLS intercept across 100 training engines in global cycle coords
+sigma_alpha =  0.15   # std is 0.10, keep slightly wider
+mu_beta     =  0.73   # mean OLS beta across 100 training engines in global cycle coords
+sigma_beta  =  0.25   # std is 0.19, slightly wider to allow variation
 sigma_noise =  0.15   # sensor noise on normalised scale
 
 # hmc hyperparameters
-epsilon  = 0.014   # tuned to hit ~75% acceptance rate
+epsilon  = 0.015   # 93% acceptance on e20 but delta_H near 0, stable
 L        = 20      # leapfrog steps per iteration
 n_samples = 10000
 burn_in   = 1000
@@ -137,6 +138,6 @@ print(f"beta  — mean: {beta_samples.mean():.4f}  std: {beta_samples.std():.4f}
 print(f"delta_H — mean: {delta_H_vals.mean():.4f}  (should be near 0)")
 
 os.makedirs(samp_dir, exist_ok=True)
-np.save(f"{samp_dir}/hmc_samples_engine1.npy", samples)
-np.save(f"{samp_dir}/delta_H_engine1.npy", delta_H_vals)
+np.save(f"{samp_dir}/hmc_samples_engine{engine_id}.npy", samples)
+np.save(f"{samp_dir}/delta_H_engine{engine_id}.npy", delta_H_vals)
 print(f"samples saved to {samp_dir}")
