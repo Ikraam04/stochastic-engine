@@ -135,6 +135,10 @@ if __name__ == "__main__":
           f"mu_beta={mu_beta:.3f}  sigma_beta={sigma_beta:.3f}")
     print(f"failure threshold (mean s11_norm at failure): {failure_threshold:.4f}")
 
+    print("hyperparameters — tuned on training engine 10, 71.98 % acceptance:")
+    print(f"epsilon={epsilon}  L={L}  n_samples={n_samples}  burn_in={burn_in}")
+    print("CI shown as 5th<=x<=95th percentile  |  target acc 60-80%")
+
     cfg = dict(
         mu_alpha=mu_alpha,     sigma_alpha=sigma_alpha,
         mu_beta=mu_beta,       sigma_beta=sigma_beta,
@@ -160,9 +164,9 @@ if __name__ == "__main__":
     with Pool() as pool:
         for r in pool.imap_unordered(process_engine, engine_args):
             results.append(r)
-            print(f"e{r['engine_id']:3d}  cycles={r['n_cycles']:3d}  acc={r['acc']:.0%}  "
-                  f"pred={r['mean_rul']:6.1f}  90%CI<={r['ci_high']:6.0f}  "
-                  f"true={r['true_rul']:5.0f}  err={r['error']:+.1f}")
+            print(f"E{r['engine_id']:3d}: cycles={r['n_cycles']:3d}  acc={r['acc']:4.0%}  "
+                  f"{r['ci_low']:.0f}<=x<={r['ci_high']:.0f}  "
+                  f"pred={r['mean_rul']:.0f}  true={r['true_rul']:.0f}  err={r['error']:+.0f}")
 
     results.sort(key=lambda x: x["engine_id"])
 
