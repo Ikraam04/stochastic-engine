@@ -1,116 +1,129 @@
-# changes.md - pivoting the model
+# changes.md — pivoting the model
 
-## the original plan
+## The Original Plan
 
-build a from-scratch HMC sampler that infers a posterior over engine degradation parameters and turns that posterior into a full probability distribution over Remaining Useful Life (RUL). numpy only, no PyMC / Stan / autograd.
+Build a from-scratch HMC sampler that infers a posterior over engine degradation parameters and turns that posterior into a full probability distribution over Remaining Useful Life (RUL). NumPy only — no PyMC, Stan, or autograd.
 
-simplest model that could possibly work:
+Simplest model that could possibly work:
 
-```
-h(t) = α + βt           # linear health curve
-y_t  = h(t) + ε         # noisy sensor reading
-ε    ~ N(0, σ²)
-```
+$$h(t) = \alpha + \beta t \quad \text{(linear health curve)}$$
 
-priors gaussian on (α, β), failure declared when `h(t) = threshold`. RUL follows by just inverting that:
+$$y_t = h(t) + \varepsilon, \quad \varepsilon \sim \mathcal{N}(0, \sigma^2) \quad \text{(noisy sensor reading)}$$
 
-```
-t_failure = (threshold - α) / β
-RUL       = (t_failure - t_last) * global_max_cycle
-```
+Priors Gaussian on $(\alpha, \beta)$. Failure declared when $h(t) = \tau$ (the failure threshold). RUL follows by inverting:
 
-sensor: s11 (highest correlation with cycle across the training fleet, lowest residual std). normalisation:
-- s11 normalised to [0,1] using training global min/max
-- cycles normalised by training global_max_cycle = 362
+$$t_{\text{failure}} = \frac{\tau - \alpha}{\beta}$$
 
-priors derived from OLS on all 100 training engines in normalised coords:
-- `μ_α ≈ 0.21,  σ_α ≈ 0.15`
-- `μ_β ≈ 0.73,  σ_β ≈ 0.24`
-- `σ_noise = 0.15` (fixed)
+$$\text{RUL} = (t_{\text{failure}} - t_{\text{last}}) \times t_{\text{max}}$$
 
-failure threshold: mean s11_norm at the last cycle across all training engines, which comes out to about **0.79**. not 1.0 because most engines die before s11 hits the global max.
+**Sensor:** s11 (highest correlation with cycle across the training fleet). 
 
-hmc tuned on training engine 10:
-- `ε = 0.015,  L = 20,  n_samples = 10000,  burn_in = 1000`
-- acceptance ~72%, ΔH near 0, ESS comfortably above 400
+**Normalisation:**
+- $s_{11}$ normalised to $[0, 1]$ using training global min/max
+- Cycles normalised by $t_{\text{max}} = 362$ (global max cycle across training fleet)
 
-## how that went
+**Priors derived from OLS on all 100 training engines in normalised coordinates:**
 
-end-to-end pipeline works. sampler is healthy by every diagnostic. but when you run 06_evaluation.py over all 100 test engines:
+$$\mu_\alpha \approx 0.21, \quad \sigma_\alpha \approx 0.15$$
 
-```
-mae:   413.6 cycles
-rmse:  862.3 cycles
-mean error (bias): +413.6 cycles
-```
+$$\mu_\beta \approx 0.73, \quad \sigma_\beta \approx 0.24$$
 
-every single error is positive. mae equals bias to one decimal place. thats not noise, thats a structural problem. the model is systematically overpredicting RUL for every engine in the fleet, sometimes by 7000+ cycles (engine 59 predicted 7171, true was 114).
+$$\sigma_{\text{noise}} = 0.15 \quad \text{(fixed, not inferred)}$$
 
-### why the linear model fails
+**Failure threshold:** mean $s_{11}^{\text{norm}}$ at the last cycle across all 100 training engines, $\tau \approx 0.79$. Not 1.0 because most engines die before $s_{11}$ hits the global max.
 
-look at any s11 trajectory. its not a line. its roughly flat for the first ~60% of life with small noise, then bends upward and accelerates sharply toward failure. fitting `h(t) = α + βt` to a truncated test trajectory means we're mostly seeing the flat region.
+**HMC tuned on training engine 10:**
 
-consequence: when β is fit to flat early data, it comes out small. then:
+$$\varepsilon = 0.015, \quad L = 20, \quad N = 10{,}000, \quad N_{\text{burn}} = 1{,}000$$
 
-```
-t_failure = (0.79 - α) / β
-```
+Acceptance $\approx 72\%$, $\Delta H$ near 0, ESS comfortably above 400.
 
-blows up. small β = huge predicted t_failure = huge RUL. you can see it directly:
+---
 
-| engine | situation | predicted RUL |
+## How That Went
+
+End-to-end pipeline works. Sampler is healthy by every diagnostic. But running evaluation over all 100 test engines:
+
+$$\text{MAE} = 413.6 \text{ cycles}, \quad \text{RMSE} = 862.3 \text{ cycles}, \quad \text{bias} = +413.6 \text{ cycles}$$
+
+Every single error is positive. MAE equals bias to one decimal place. That's not noise — that's a structural problem. The model systematically overpredicts RUL for every engine in the fleet, sometimes by thousands of cycles (engine 59: predicted 7,171, true was 114).
+
+### Why the Linear Model Fails
+
+Look at any $s_{11}$ trajectory. It's not a line. It's roughly flat for the first $\sim 60\%$ of engine life with small noise, then bends upward and accelerates sharply toward failure.
+
+Fitting $h(t) = \alpha + \beta t$ to a truncated test trajectory means the sampler is mostly seeing the flat early region. Consequence: when $\beta$ is fit to flat early data, it comes out small. Then:
+
+$$t_{\text{failure}} = \frac{0.79 - \alpha}{\beta}$$
+
+blows up. Small $\beta$ gives huge $t_{\text{failure}}$ gives huge RUL.
+
+| Engine | Situation | Predicted RUL |
 |--------|-----------|---------------|
-| e59    | β ≈ 0     | 7171          |
-| e73    | β ≈ 0     | 3378          |
-| e60    | β small   | 1184          |
-| e99    | β small   | 1179          |
+| e59 | $\beta \approx 0$ | 7,171 cycles |
+| e73 | $\beta \approx 0$ | 3,378 cycles |
+| e60 | $\beta$ small | 1,184 cycles |
+| e99 | $\beta$ small | 1,179 cycles |
 
-these arent sampler failures, the chain converges fine. they're the linear model honestly extrapolating a shallow slope to a far-away threshold. the prior μ_β = 0.73 does pull β back but the test data is fighting it because early-life data really does look flat.
+These aren't sampler failures — the chain converges fine. They're the linear model honestly extrapolating a shallow slope to a far-away threshold. The prior $\mu_\beta = 0.73$ does pull $\beta$ back, but the test data fights it because early-life data really does look flat.
 
-### tl;dr
+### Summary
 
-> linear model + truncated trajectory + accelerating real degradation = systematic overestimation every time.
+> Linear model + truncated trajectory + accelerating real degradation = systematic overestimation every time.
 
-the implementation is correct. the model is wrong.
+The implementation is correct. The model is wrong.
 
-## what we're changing to
+---
 
-### the core fix: nonlinear health curve
+## What We're Changing To
 
-drop the linear assumption. degradation is not linear in cycle, so stop pretending it is. options:
+### The Core Fix: Nonlinear Health Curve
 
-**exponential (going with this one):**
-```
-h(t) = α + β · exp(γt)
-```
-three parameters, captures accelerating degradation directly, still hand-differentiable so the HMC machinery stays the same.
+Drop the linear assumption. Degradation is not linear in cycle, so stop pretending it is.
 
-gradients (prior terms dropped for clarity):
-```
-∂L/∂α = (1/σ²) Σ r_t
-∂L/∂β = (1/σ²) Σ r_t · exp(γt)
-∂L/∂γ = (1/σ²) Σ r_t · β · t · exp(γt)
-```
-where `r_t = y_t - (α + β · exp(γt))`.
+**Exponential model (chosen):**
 
-failure time solved analytically by rearranging h(t) = threshold:
-```
-t_fail = (1/γ) · log((threshold - α) / β)
-```
+$$h(t) = \alpha + \beta \cdot e^{\gamma t}$$
 
-other options we might come back to:
-- **quadratic**: `h(t) = α + βt + γt²`, even simpler gradients, `t_fail` is a quadratic root
-- **piecewise linear**: flat baseline until some change-point τ, then a ramp. τ becomes a sampled parameter
-- **logistic**: `h(t) = L / (1 + exp(-k(t - t₀)))`, full S-curve, more parameters
+Three parameters. Captures accelerating degradation directly. Still hand-differentiable so the HMC machinery stays identical.
 
+**Gradients of the log-likelihood** (prior terms omitted for clarity):
 
+Let $r_t = y_t - (\alpha + \beta e^{\gamma t})$ be the residual at cycle $t$. Then:
 
-| | original | new |
+$$\frac{\partial \log P}{\partial \alpha} = \frac{1}{\sigma^2} \sum_t r_t$$
+
+$$\frac{\partial \log P}{\partial \beta} = \frac{1}{\sigma^2} \sum_t r_t \cdot e^{\gamma t}$$
+
+$$\frac{\partial \log P}{\partial \gamma} = \frac{1}{\sigma^2} \sum_t r_t \cdot \beta t \cdot e^{\gamma t}$$
+
+**Failure time** solved analytically by inverting $h(t_{\text{fail}}) = \tau$:
+
+$$t_{\text{fail}} = \frac{1}{\gamma} \ln\!\left(\frac{\tau - \alpha}{\beta}\right)$$
+
+**Failure threshold as a distribution** rather than a fixed scalar:
+
+$$\tau \sim \mathcal{N}(0.79,\ \sigma_\tau^2)$$
+
+where $\sigma_\tau$ is the empirical standard deviation of $s_{11}^{\text{norm}}$ at failure across the 100 training engines. One threshold sample is drawn per posterior sample of $(\alpha, \beta, \gamma)$, propagating threshold uncertainty into the RUL distribution.
+
+### Other Options Considered
+
+| Model | Health curve | Notes |
+|-------|-------------|-------|
+| Quadratic | $\alpha + \beta t + \gamma t^2$ | Simpler gradients, $t_{\text{fail}}$ is a quadratic root |
+| Piecewise linear | Flat until changepoint $\tau$, then ramp | $\tau$ becomes a sampled parameter |
+| Logistic | $L / (1 + e^{-k(t - t_0)})$ | Full S-curve, more parameters |
+
+---
+
+## Summary of Changes
+
+| | Original model | New model |
 |---|---|---|
-| health curve | `α + βt` | `α + β·exp(γt)` |
-| parameters | 2 | 3 |
-| failure threshold | scalar 0.79 | `N(0.79, σ_thr²)` |
-| RUL output | point + narrow CI | full posterior distribution |
-| expected bias | +414 cycles | ≈ 0 (TBD) |
-
-the math, priors, HMC, leapfrog, diagnostics all stay. what changes is the function we're fitting to the data and how we treat the threshold.
+| Health curve | $\alpha + \beta t$ | $\alpha + \beta e^{\gamma t}$ |
+| Parameters | 2 — $(\alpha, \beta)$ | 3 — $(\alpha, \beta, \gamma)$ |
+| Failure threshold | Fixed scalar $\tau = 0.79$ | $\tau \sim \mathcal{N}(0.79,\ \sigma_\tau^2)$ |
+| Expected bias | $+414$ cycles | $\approx 0$ (to be confirmed) |
+| HMC machinery | Unchanged | Unchanged |
+| Gradients | 2 analytical expressions | 3 analytical expressions |
