@@ -78,7 +78,8 @@ def compute_gradients(alpha, phi, psi):
     g_psi   = (1 / sigma_noise**2) * np.sum(r * beta * cycles * exp_gt) * gamma \
             - (psi - mu_psi) / sigma_psi**2
 
-    return np.array([g_alpha, g_phi, g_psi])
+    # clip gradient magnitude — stops leapfrog exploding on steep parts of the landscape
+    return np.clip(np.array([g_alpha, g_phi, g_psi]), -50, 50)
 
 
 def leapfrog(theta, p):

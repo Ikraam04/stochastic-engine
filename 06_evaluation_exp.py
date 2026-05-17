@@ -22,7 +22,6 @@ global_max_cycle = train_data[:, 1].max()
 def exp_model(t, alpha, beta, gamma):
     return alpha + beta * np.exp(gamma * t)
 
-print("fitting exponential curves to training engines to derive priors...")
 alphas, betas, gammas = [], [], []
 for eid in range(1, 101):
     e = train_data[train_data[:, 0] == eid]
@@ -96,7 +95,9 @@ def process_engine(args):
         g_alpha = (1/sig_n**2)*np.sum(r)                         - (alpha-mu_a) /sig_a**2
         g_phi   = (1/sig_n**2)*np.sum(r*exp_gt)*beta             - (phi  -mu_ph)/sig_ph**2
         g_psi   = (1/sig_n**2)*np.sum(r*beta*cycles*exp_gt)*gamma- (psi  -mu_ps)/sig_ps**2
-        return np.array([g_alpha, g_phi, g_psi])
+        # clip gradient magnitude — stops leapfrog exploding on steep parts of the landscape
+        # (long engines near failure have very large exp(gamma*t) terms)
+        return np.clip(np.array([g_alpha, g_phi, g_psi]), -50, 50)
 
     def leapfrog(theta, p):
         theta = theta.copy(); p = p.copy()
@@ -165,9 +166,9 @@ if __name__ == "__main__":
     print("CI shown as 5th<=x<=95th percentile  |  target acc 60-80%")
 
     cfg = dict(
-        mu_alpha=mu_alpha,       sigma_alpha=sigma_alpha,
-        mu_phi=mu_phi,           sigma_phi=sigma_phi,
-        mu_psi=mu_psi,           sigma_psi=sigma_psi,
+        mu_alpha=mu_alpha,sigma_alpha=sigma_alpha,
+        mu_phi=mu_phi,sigma_phi=sigma_phi,
+        mu_psi=mu_psi,sigma_psi=sigma_psi,
         sigma_noise=sigma_noise, epsilon=epsilon,
         L=L, n_samples=n_samples, burn_in=burn_in,
         failure_threshold=failure_threshold,
@@ -198,12 +199,19 @@ if __name__ == "__main__":
     abs_errors = np.abs(errors)
     true_ruls  = np.array([r["true_rul"] for r in results])
     pred_ruls  = np.array([r["mean_rul"] for r in results])
+    ci_lows    = np.array([r["ci_low"]   for r in results])
     ci_highs   = np.array([r["ci_high"]  for r in results])
+
+    # coverage = fraction of true RULs that fall inside our 90% CI
+    # want this close to 90% — too high means CI is too wide, too low means too confident
+    covered  = (true_ruls >= ci_lows) & (true_ruls <= ci_highs)
+    coverage = covered.mean()
 
     print(f"\nsummary:")
     print(f"mae:        {abs_errors.mean():.1f} cycles")
     print(f"rmse:       {np.sqrt((errors**2).mean()):.1f} cycles")
     print(f"mean error (bias): {errors.mean():+.1f} cycles")
+    print(f"coverage (90% CI): {coverage:.1%}  ({covered.sum()}/100 engines)")
     print(f"90% confident fleet fails within median {np.median(ci_highs):.0f} cycles  "
           f"(vs median true RUL: {np.median(true_ruls):.0f})")
 
@@ -219,7 +227,7 @@ if __name__ == "__main__":
     plt.tight_layout()
     plt.savefig(f"{fig_dir}/pred_vs_true_rul.png", dpi=120)
     plt.close()
-    print("saved pred_vs_true_rul.png")
+   
 
     # plot 2: error distribution
     fig, ax = plt.subplots(figsize=(9, 4))
@@ -234,4 +242,3 @@ if __name__ == "__main__":
     plt.tight_layout()
     plt.savefig(f"{fig_dir}/error_distribution.png", dpi=120)
     plt.close()
-    print("saved error_distribution.png")
