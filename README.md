@@ -18,27 +18,41 @@ we use **Bayesian inference** to get a posterior distribution over engine degrad
 
 ### The Model
 
-engine health is modelled as a linear function of cycle $t$:
+engine health follows an exponential degradation curve:
 
-$$h(t) = \alpha + \beta t$$
+$$h(t) = \alpha + \beta \cdot e^{\gamma t}$$
 
-where $\alpha$ is starting health and $\beta$ is the degradation rate. sensor readings are noisy observations of the true health:
+where $\alpha$ is baseline health, $\beta$ is the degradation magnitude, and $\gamma$ controls how fast it accelerates. sensor readings are noisy observations:
 
 $$y_t = h(t) + \varepsilon, \quad \varepsilon \sim \mathcal{N}(0, \sigma^2)$$
 
-RUL is the cycle where health hits the failure threshold $\tau$:
+RUL is the cycle where health hits the failure threshold $\tau$, solved analytically by inverting $h(t_{\text{fail}}) = \tau$:
 
-$$t_{\text{RUL}} = \frac{\tau - \alpha}{\beta} - t_{\text{last}}$$
+$$t_{\text{RUL}} = \frac{1}{\gamma} \ln\!\left(\frac{\tau - \alpha}{\beta}\right) - t_{\text{last}}$$
 
-we want the full posterior over parameters $\theta = (\alpha, \beta)$ given observed sensor data $D$:
+we want the full posterior over parameters $\theta = (\alpha, \beta, \gamma)$ given observed sensor data $D$:
 
 $$P(\theta \mid D) \propto P(D \mid \theta) \cdot P(\theta)$$
 
-computing this exactly means integrating over all possible parameter values which is analytically intractable. so instead of computing it, we **sample** from it using **Hamiltonian Monte Carlo (HMC)**.
+computing this exactly means integrating over all possible parameter values, which is analytically intractable. so instead we **sample** from it using **Hamiltonian Monte Carlo (HMC)**.
+
+> **why not linear?** we first tried $h(t) = \alpha + \beta t$. the sampler worked fine but MAE was 315 cycles with a systematic +315 bias — the model extrapolates a flat early-life slope all the way to the threshold, overshooting by hundreds of cycles every time. see [changes.md](changes.md) for the full breakdown.
+
+### Reparametrisation
+
+we dont sample $\beta$ and $\gamma$ directly. instead we sample:
+
+$$\phi = \log\beta, \quad \psi = \log\gamma$$
+
+so $\beta = e^\phi > 0$ and $\gamma = e^\psi > 0$ are guaranteed by construction. it also puts the three params on a more similar scale, which means one step size $\varepsilon$ works for all three. the chain rule gives the gradient in reparametrised space:
+
+$$\frac{\partial \log P}{\partial \phi} = \frac{\partial \log P}{\partial \beta} \cdot \beta, \qquad \frac{\partial \log P}{\partial \psi} = \frac{\partial \log P}{\partial \gamma} \cdot \gamma$$
+
+every gradient is derived analytically by hand. no autograd, no JAX.
 
 ### Why HMC?
 
-standard random-walk samplers (like Metropolis-Hastings) explore the posterior pretty inefficiently — they stumble around without using any info about the shape of the distribution. HMC uses the **gradient of the log-posterior** as a physical force, simulating a ball rolling across the posterior landscape:
+standard random-walk samplers (like Metropolis-Hastings) explore the posterior inefficiently — they stumble around without using any info about the shape of the distribution. HMC uses the **gradient of the log-posterior** as a physical force, simulating a ball rolling across the posterior landscape:
 
 $$H(\theta, p) = \underbrace{-\log P(\theta \mid D)}_{U(\theta)\ \text{potential energy}} + \underbrace{\frac{p^2}{2}}_{K(p)\ \text{kinetic energy}}$$
 
@@ -46,11 +60,9 @@ Hamilton's equations of motion give us:
 
 $$\frac{d\theta}{dt} = p \qquad \frac{dp}{dt} = \nabla \log P(\theta \mid D)$$
 
-the gradient acts as a physical force steering the sampler toward high-probability regions. the intractable $P(D)$ cancels exactly in the acceptance ratio:
+the gradient acts as a physical force steering the sampler toward high-probability regions. the intractable $P(D)$ cancels exactly in the acceptance ratio — we never compute the normalising constant:
 
 $$r = \exp(H_{\text{old}} - H_{\text{new}}) = \frac{P(D \mid \theta^*) \cdot P(\theta^*)}{P(D \mid \theta) \cdot P(\theta)}$$
-
-we never compute the normalising constant. every gradient is derived analytically by hand. no autograd, no JAX.
 
 ---
 
@@ -82,34 +94,62 @@ CMAPSSData/
 ## Pipeline
 
 ```
-train_FD001.txt ──> fit OLS on all 100 engines → priors on (α, β), failure threshold τ, normalisation constants
+train_FD001.txt ──> curve_fit exp model on all 100 engines
+                    → priors on (α, β, γ), failure threshold τ, normalisation constants
                                     ↓
-test_FD001.txt ───> HMC sampler ──> posterior P(α, β | D) ──> RUL distribution
-                                                                      ↓
-RUL_FD001.txt ────────────────────────────────────────────> score predictions
+test_FD001.txt ───> HMC sampler (reparametrised: φ=log β, ψ=log γ)
+                    → posterior P(α, φ, ψ | D) → RUL distribution
+                                                        ↓
+RUL_FD001.txt ──────────────────────────────> score predictions
 ```
 
-**Priors** derived from OLS fits across all 100 training engines:
+**Priors** for $(\alpha, \beta, \gamma)$ derived by fitting the exponential model to all 100 training engines with `scipy.optimize.curve_fit`, then clipping outliers (5th/95th percentile) before computing mean/std. priors on $\phi = \log\beta$ and $\psi = \log\gamma$ use the delta method:
 
-$$\alpha \sim \mathcal{N}(\mu_\alpha, \sigma_\alpha^2), \quad \beta \sim \mathcal{N}(\mu_\beta, \sigma_\beta^2)$$
+$$\mu_\phi = \log(\mu_\beta), \quad \sigma_\phi \approx \frac{\sigma_\beta}{\mu_\beta}$$
 
-**Failure threshold** $\tau$ = mean $s_{11}^{\text{norm}}$ at last cycle across all training engines (fixed value, not a distribution).
+**Failure threshold** $\tau = 0.7915$ = mean $s_{11}^{\text{norm}}$ at last cycle across all training engines (fixed scalar, not a distribution).
+
+---
+
+## Results
+
+fleet eval over all 100 test engines. one HMC chain per engine, 10k samples, 1k burn-in.
+
+| metric | linear $h = \alpha + \beta t$ | exponential $h = \alpha + \beta e^{\gamma t}$ |
+|--------|-------------------------------|-----------------------------------------------|
+| MAE | 314.7 cycles | **15.2 cycles** |
+| RMSE | 371.4 cycles | **20.1 cycles** |
+| bias | +314.7 cycles | **+6.7 cycles** |
+| coverage (90% CI) | 4% | **94%** |
+
+**coverage** = fraction of true RULs that fall inside the [5th, 95th] percentile credible interval. for a perfectly calibrated 90% CI this should be ~90%.
+
+4% for linear: the CIs are in the wrong place due to model misspecification — the sampler is working correctly, the model shape is just wrong.
+
+94% for exponential: slightly conservative (intervals a touch wider than needed) but well-calibrated. good for a safety-critical application.
+
+MAE of 15.2 cycles is competitive with LSTM benchmarks on CMAPSS FD001 (typical range: 12–18 cycles), and this model also gives full uncertainty quantification.
 
 ---
 
 ## Project Structure
 
 ```
-├── 01_eda.py              — sensor analysis and health proxy selection
-├── 02_preprocessing.py    — clean and normalise data for the sampler
-├── 03_hmc_sampler.py      — the HMC implementation (core file)
-├── 04_diagnostics.py      — trace plots, ESS, ΔH energy diagnostics
-├── 05_rul_prediction.py   — posterior samples → RUL distribution
-├── 06_evaluation.py       — predicted vs true RUL across all 100 test engines
-├── changes.md             — model change log
+├── fit_exp_priors.py        — fit exp curves to training engines, derive priors for γ
+├── 01_eda.py                — sensor analysis and health proxy selection
+├── 02_preprocessing.py      — clean and normalise data for the sampler
+├── 03_hmc_sampler.py        — linear model HMC (historical)
+├── 03_hmc_sampler_exp.py    — exponential model HMC with reparametrisation
+├── 04_diagnostics.py        — linear model diagnostics
+├── 04_diagnostics_exp.py    — trace plots, ESS, ΔH, autocorrelation (exp model)
+├── 05_rul_prediction.py     — linear model RUL prediction
+├── 05_rul_prediction_exp.py — posterior samples → RUL distribution (exp model)
+├── 06_evaluation.py         — fleet eval, linear model
+├── 06_evaluation_exp.py     — fleet eval, exponential model
+├── changes.md               — model change log with full math
 └── results/
-    ├── linear/            — outputs from the linear model
-    └── exponential/       — outputs from the exponential model (wip)
+    ├── linear/              — outputs from the linear model
+    └── exponential/         — outputs from the exponential model
 ```
 
 ---
@@ -129,13 +169,5 @@ $$\alpha \sim \mathcal{N}(\mu_\alpha, \sigma_\alpha^2), \quad \beta \sim \mathca
 - [x] HMC sampler — leapfrog integrator, accept/reject, full sampler loop
 - [x] Diagnostics — trace plots, ESS, $\Delta H$ distribution, autocorrelation
 - [x] RUL prediction — posterior samples → RUL distribution with credible intervals
-- [x] Evaluation — all 100 test engines, RMSE, coverage metric
-- [ ] Exponential model — replace linear $h(t)$ with $\alpha + \beta e^{\gamma t}$
-- [ ] Threshold as distribution — propagate $\tau$ uncertainty into RUL
-- [ ] Re-evaluate — compare RMSE and coverage before vs after
-
----
-
-## Update
-
-LINEAR MODEL DOO DOO SWITCHING TO NON-LINEAR - SEE CHANGES.MD
+- [x] Evaluation — all 100 test engines, MAE/RMSE/bias/coverage
+- [x] Exponential model — reparametrised HMC ($\phi = \log\beta$, $\psi = \log\gamma$), gradient clipping, MAE=15.2
