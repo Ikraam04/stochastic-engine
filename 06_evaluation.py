@@ -140,8 +140,8 @@ if __name__ == "__main__":
     print("CI shown as 5th<=x<=95th percentile  |  target acc 60-80%")
 
     cfg = dict(
-        mu_alpha=mu_alpha,     sigma_alpha=sigma_alpha,
-        mu_beta=mu_beta,       sigma_beta=sigma_beta,
+        mu_alpha=mu_alpha,sigma_alpha=sigma_alpha,
+        mu_beta=mu_beta, sigma_beta=sigma_beta,
         sigma_noise=sigma_noise, epsilon=epsilon,
         L=L, n_samples=n_samples, burn_in=burn_in,
         failure_threshold=failure_threshold,
@@ -174,12 +174,19 @@ if __name__ == "__main__":
     abs_errors = np.abs(errors)
     true_ruls  = np.array([r["true_rul"] for r in results])
     pred_ruls  = np.array([r["mean_rul"] for r in results])
+    ci_lows    = np.array([r["ci_low"]   for r in results])
     ci_highs   = np.array([r["ci_high"]  for r in results])
+
+    # coverage = fraction of true RULs that fall inside our 90% CI
+    # want this close to 90% — too high means CI is too wide, too low means too confident
+    covered  = (true_ruls >= ci_lows) & (true_ruls <= ci_highs)
+    coverage = covered.mean()
 
     print(f"Summary:")
     print(f"mae:   {abs_errors.mean():.1f} cycles")
     print(f"rmse:  {np.sqrt((errors**2).mean()):.1f} cycles")
     print(f"mean error (bias): {errors.mean():+.1f} cycles")
+    print(f"coverage (90% CI): {coverage:.1%}  ({covered.sum()}/100 engines)")
     print(f"median: {np.median(ci_highs):.0f} cycles  "
           f"(vs median true RUL: {np.median(true_ruls):.0f})")
 
@@ -195,7 +202,7 @@ if __name__ == "__main__":
     plt.tight_layout()
     plt.savefig(f"{fig_dir}/pred_vs_true_rul.png", dpi=120)
     plt.close()
-    print("saved pred_vs_true_rul.png")
+
 
     # plot 2: error distribution
     fig, ax = plt.subplots(figsize=(9, 4))
@@ -210,4 +217,4 @@ if __name__ == "__main__":
     plt.tight_layout()
     plt.savefig(f"{fig_dir}/error_distribution.png", dpi=120)
     plt.close()
-    print("saved error_distribution.png")
+
