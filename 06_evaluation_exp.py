@@ -66,6 +66,7 @@ burn_in   = 1000
 
 
 def process_engine(args):
+    # same RUL computation as 05_rul_prediction_exp.py — repeated for all 100 engines
     engine_id, cycles, y_obs, t_last, true_rul, cfg = args
 
     mu_a    = cfg["mu_alpha"];    sig_a   = cfg["sigma_alpha"]
@@ -158,12 +159,10 @@ def process_engine(args):
 
 
 if __name__ == "__main__":
-    print(f"derived priors — mu_alpha={mu_alpha:.3f}  sigma_alpha={sigma_alpha:.3f}  "
+    print(f"priors: mu_alpha={mu_alpha:.3f}  sigma_alpha={sigma_alpha:.3f}  "
           f"mu_beta={mu_beta:.4f}  sigma_beta={sigma_beta:.4f}  "
           f"mu_gamma={mu_gamma:.3f}  sigma_gamma={sigma_gamma:.3f}")
     print(f"failure threshold: {failure_threshold:.4f}")
-    print(f"hyperparams — epsilon={epsilon}  L={L}  n_samples={n_samples}  burn_in={burn_in}")
-    print("CI shown as 5th<=x<=95th percentile  |  target acc 60-80%")
 
     cfg = dict(
         mu_alpha=mu_alpha,sigma_alpha=sigma_alpha,

@@ -1,7 +1,6 @@
 import numpy as np
 import os
 
-# change these to switch runs - must match what 02_preprocessing.py used
 model     = "linear"
 run_id    = "E10_S11"
 engine_id = 10
@@ -10,135 +9,121 @@ samp_dir  = f"results/{model}/{run_id}/samples"
 cycles = np.load(f"{samp_dir}/cycles_engine{engine_id}.npy")
 y_obs  = np.load(f"{samp_dir}/y_obs_engine{engine_id}.npy")
 
-#  priors
-# these are on the normalised scale (y_obs is in [0,1], mean ~0.37)
-# alpha: where s11 starts. mean of y_obs is ~0.37 so prior centres there
-# beta: how fast s11 changes per cycle. s11 increases with degradation so beta is positive
-# sigma: sensor noise on the normalised scale
-mu_alpha    =  0.21   # mean OLS intercept across 100 training engines in global cycle coords
-sigma_alpha =  0.15   # std is 0.10, keep slightly wider
-mu_beta     =  0.73   # mean OLS beta across 100 training engines in global cycle coords
-sigma_beta  =  0.25   # std is 0.19, slightly wider to allow variation
-sigma_noise =  0.15   # sensor noise on normalised scale
+# gaussian priors on (alpha, beta) derived from OLS across 100 training engines
+# alpha: s11 intercept in normalised coords (~0.21 on average)
+# beta:  degradation rate — positive because s11 increases with cycle
+mu_alpha    =  0.21
+sigma_alpha =  0.15
+mu_beta     =  0.73
+sigma_beta  =  0.25
+sigma_noise =  0.15   # sensor noise on normalised scale (fixed, not inferred)
 
-# hmc hyperparameters
-epsilon  = 0.015   # 93% acceptance on e20 but delta_H near 0, stable
-L        = 20      # leapfrog steps per iteration
+# hmc hyperparams — tuned on training engine 10
+epsilon   = 0.015  # leapfrog step size
+L         = 20     # leapfrog steps per iteration
 n_samples = 10000
 burn_in   = 1000
 
 
 def log_likelihood(alpha, beta, y_obs, cycles, sigma):
-    # gaussian log-likelihood: how well do (alpha, beta) explain the sensor readings
-    # sum of log N(y_t | alpha + beta*t, sigma) over all cycles
+    # log N(y_t | alpha + beta*t, sigma^2) summed over all t
+    # = -0.5 * sum_t [(y_t - (alpha + beta*t))^2 / sigma^2]
     mu_pred = alpha + beta * cycles
     return -0.5 * np.sum(((y_obs - mu_pred) / sigma) ** 2)
 
 
 def log_prior(alpha, beta):
-    # gaussian priors on both params
-    # penalises values far from our prior beliefs about alpha and beta
+    # log N(alpha | mu_alpha, sigma_alpha^2) + log N(beta | mu_beta, sigma_beta^2)
     lp_alpha = -0.5 * ((alpha - mu_alpha) / sigma_alpha) ** 2
     lp_beta  = -0.5 * ((beta  - mu_beta)  / sigma_beta)  ** 2
     return lp_alpha + lp_beta
 
 
 def log_posterior(alpha, beta):
-    # the thing hmc navigates - just likelihood + prior in log space
-    # p(D) cancels in the acceptance ratio so we never compute it
+    # log P(alpha, beta | D) = log P(D | alpha, beta) + log P(alpha, beta)
+    # P(D) cancels exactly in the metropolis acceptance ratio — never computed
     return log_likelihood(alpha, beta, y_obs, cycles, sigma_noise) + log_prior(alpha, beta)
 
 
 def compute_gradients(alpha, beta):
-    # analytical gradients of log_posterior w.r.t. alpha and beta
-    # these act as the force that drives the leapfrog integrator
-    residuals = y_obs - (alpha + beta * cycles)
-
+    # analytical grad of log_posterior w.r.t (alpha, beta)
+    # this acts as the physical force in the hamiltonian system, steering the sampler
+    # toward high-probability regions of the posterior
+    #
+    # let r_t = y_t - (alpha + beta*t)  (residual at cycle t)
+    #
+    # d/d_alpha = (1/sigma^2) * sum_t(r_t)        - (alpha - mu_alpha) / sigma_alpha^2
+    # d/d_beta  = (1/sigma^2) * sum_t(t * r_t)    - (beta  - mu_beta)  / sigma_beta^2
+    residuals  = y_obs - (alpha + beta * cycles)
     grad_alpha = (1 / sigma_noise**2) * np.sum(residuals) \
                  - (alpha - mu_alpha) / sigma_alpha**2
-
     grad_beta  = (1 / sigma_noise**2) * np.sum(cycles * residuals) \
                  - (beta - mu_beta) / sigma_beta**2
-
     return np.array([grad_alpha, grad_beta])
 
 
 def leapfrog(theta, p, epsilon, L):
-    # simulates a ball rolling across the posterior landscape for L steps
-    # staggered half-step momentum, full-step position keeps energy ~conserved
+    # discretises hamilton's equations: dtheta/dt = p, dp/dt = grad log P(theta|D)
+    # staggered half-step momentum + full-step position = second order accuracy (vs euler)
+    # keeps the hamiltonian H = -log P(theta|D) + p^2/2 approximately conserved
     theta = theta.copy()
-    p = p.copy()
+    p     = p.copy()
 
-    # half step for momentum at the start
-    p += (epsilon / 2) * compute_gradients(theta[0], theta[1])
+    p += (epsilon / 2) * compute_gradients(theta[0], theta[1])   # half step
 
     for _ in range(L - 1):
         theta += epsilon * p                                        # full position step
         p     += epsilon * compute_gradients(theta[0], theta[1])   # full momentum step
 
-    theta += epsilon * p                                            # final position step
-    p     += (epsilon / 2) * compute_gradients(theta[0], theta[1]) # final half momentum step
+    theta += epsilon * p                                            # last position step
+    p     += (epsilon / 2) * compute_gradients(theta[0], theta[1]) # last half momentum step
 
     return theta, p
 
 
 def hmc_sampler():
-    # main loop - each iteration proposes a new (alpha, beta) via leapfrog
-    # then accepts or rejects it based on how much energy changed
-
-    # start at prior means - reasonable starting point
-    theta = np.array([mu_alpha, mu_beta])
-
+    # hmc loop:
+    #   1. sample fresh momentum p ~ N(0, I)  — this randomises the direction each iteration
+    #   2. run leapfrog for L steps to get a proposal (theta_new, p_new)
+    #   3. metropolis accept/reject based on delta_H = H_old - H_new
+    #      accept if delta_H > 0 (lower energy = higher posterior), else accept with prob exp(delta_H)
+    #      perfect leapfrog would give delta_H = 0 always — small epsilon keeps it near 0
+    #   4. accepted proposals = new sample. rejected = repeat current position
+    theta        = np.array([mu_alpha, mu_beta])   # start at prior means
     samples      = np.zeros((n_samples, 2))
     accepted     = 0
-    delta_H_vals = []   # track energy change each step - should stay near 0
+    delta_H_vals = []
 
     for i in range(n_samples):
-        # draw fresh momentum each iteration - this is the hmc trick
-        p = np.random.randn(2)
+        p          = np.random.randn(2)
+        H_current  = -log_posterior(theta[0], theta[1]) + 0.5 * np.dot(p, p)
+        th_p, p_p  = leapfrog(theta, p, epsilon, L)
+        H_proposed = -log_posterior(th_p[0], th_p[1]) + 0.5 * np.dot(p_p, p_p)
 
-        # current hamiltonian: potential energy + kinetic energy
-        # U = -log_posterior (negative bc posterior peak = energy minimum)
-        # K = p^2 / 2
-        H_current = -log_posterior(theta[0], theta[1]) + 0.5 * np.dot(p, p)
-
-        # propose new (theta, p) by running leapfrog
-        theta_proposed, p_proposed = leapfrog(theta, p, epsilon, L)
-
-        H_proposed = -log_posterior(theta_proposed[0], theta_proposed[1]) + 0.5 * np.dot(p_proposed, p_proposed)
-
-        # metropolis acceptance step
-        # if proposed has lower energy (higher posterior) - always accept
-        # if higher energy - accept with probability exp(H_current - H_proposed)
         delta_H = H_current - H_proposed
         delta_H_vals.append(delta_H)
 
         if np.log(np.random.rand()) < delta_H:
-            theta = theta_proposed
+            theta = th_p
             accepted += 1
 
         samples[i] = theta
 
-    acceptance_rate = accepted / n_samples
-    return samples, acceptance_rate, np.array(delta_H_vals)
+    return samples, accepted / n_samples, np.array(delta_H_vals)
 
 
-print("running hmc sampler...")
 samples, acceptance_rate, delta_H_vals = hmc_sampler()
 
-print(f"done. acceptance rate: {acceptance_rate:.2%}")
-print(f"target is 60-80% - {'ok' if 0.6 <= acceptance_rate <= 0.8 else 'needs tuning'}")
+print(f"acceptance rate: {acceptance_rate:.2%}  (target 60-80% — {'ok' if 0.6 <= acceptance_rate <= 0.8 else 'needs tuning'})")
 
-# quick look at posterior
-post_samples = samples[burn_in:]
+post_samples  = samples[burn_in:]
 alpha_samples = post_samples[:, 0]
 beta_samples  = post_samples[:, 1]
 
-print(f"\nalpha — mean: {alpha_samples.mean():.4f}  std: {alpha_samples.std():.4f}")
+print(f"alpha — mean: {alpha_samples.mean():.4f}  std: {alpha_samples.std():.4f}")
 print(f"beta  — mean: {beta_samples.mean():.4f}  std: {beta_samples.std():.4f}")
-print(f"delta_H — mean: {delta_H_vals.mean():.4f}  (should be near 0)")
+print(f"delta_H mean: {delta_H_vals.mean():.4f}  (near 0 = leapfrog conserving energy ok)")
 
 os.makedirs(samp_dir, exist_ok=True)
 np.save(f"{samp_dir}/hmc_samples_engine{engine_id}.npy", samples)
 np.save(f"{samp_dir}/delta_H_engine{engine_id}.npy", delta_H_vals)
-print(f"samples saved to {samp_dir}")
