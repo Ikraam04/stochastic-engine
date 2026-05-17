@@ -1,0 +1,111 @@
+derived priors — mu_alpha=0.287  sigma_alpha=0.078  mu_beta=0.0116  sigma_beta=0.0051  mu_gamma=7.160  sigma_gamma=1.582
+failure threshold: 0.7915
+hyperparams — epsilon=0.015  L=15  n_samples=10000  burn_in=1000
+CI shown as 5th<=x<=95th percentile  |  target acc 60-80%
+
+E  2: cycles= 49  acc= 96%  74<=x<=223  pred=138  true=98  err=+40
+E  6: cycles=105  acc= 93%  57<=x<=184  pred=109  true=93  err=+16
+E 26: cycles= 76  acc= 93%  71<=x<=220  pred=134  true=119  err=+15
+E  3: cycles=126  acc= 93%  36<=x<=123  pred=70  true=69  err=+1
+E  4: cycles=106  acc= 92%  36<=x<=132  pred=74  true=82  err=-8
+E 13: cycles=195  acc= 79%  51<=x<=116  pred=78  true=95  err=-17
+E 19: cycles=135  acc= 98%  54<=x<=158  pred=96  true=87  err=+9
+E  8: cycles=166  acc= 90%  52<=x<=144  pred=90  true=95  err=-5
+E 15: cycles= 76  acc= 93%  66<=x<=211  pred=127  true=83  err=+44
+E 24: cycles=186  acc= 80%  20<=x<=45  pred=31  true=20  err=+11
+E 29: cycles=171  acc= 96%  65<=x<=162  pred=105  true=90  err=+15
+E  9: cycles= 55  acc= 97%  67<=x<=213  pred=130  true=111  err=+19
+E 18: cycles=133  acc= 96%  23<=x<=62  pred=40  true=28  err=+12
+E 17: cycles=165  acc= 92%  37<=x<=88  pred=59  true=50  err=+9
+E 10: cycles=192  acc= 78%  48<=x<=112  pred=76  true=96  err=-20
+E 28: cycles=158  acc= 85%  55<=x<=150  pred=94  true=97  err=-3
+E 21: cycles=148  acc= 86%  63<=x<=174  pred=109  true=57  err=+52
+E  1: cycles= 31  acc= 99%  97<=x<=256  pred=167  true=112  err=+55
+E 11: cycles= 83  acc= 93%  49<=x<=180  pred=103  true=97  err=+6
+E 25: cycles= 48  acc= 95%  85<=x<=240  pred=152  true=145  err=+7
+E 23: cycles=130  acc= 96%  64<=x<=179  pred=112  true=113  err=-1
+E  5: cycles= 98  acc= 98%  46<=x<=163  pred=93  true=91  err=+2
+E 27: cycles=140  acc= 92%  43<=x<=117  pred=73  true=66  err=+7
+E 22: cycles= 39  acc= 98%  83<=x<=239  pred=149  true=111  err=+38
+E 14: cycles= 46  acc= 96%  62<=x<=210  pred=126  true=107  err=+19
+E 16: cycles=113  acc= 90%  59<=x<=179  pred=108  true=84  err=+24
+E 30: cycles=143  acc= 90%  47<=x<=137  pred=83  true=115  err=-32
+E  7: cycles=160  acc= 85%  61<=x<=153  pred=99  true=91  err=+8
+E 20: cycles=184  acc= 79%  8<=x<=27  pred=17  true=16  err=+1
+E 31: cycles=196  acc= 77%  2<=x<=16  pred=8  true=8  err=+0
+E 32: cycles=145  acc= 87%  43<=x<=103  pred=68  true=48  err=+20
+E 12: cycles=217  acc= 94%  68<=x<=150  pred=104  true=124  err=-20
+E 34: cycles=203  acc= 77%  0<=x<=10  pred=4  true=7  err=-3
+E 35: cycles=198  acc= 93%  2<=x<=23  pred=11  true=11  err=+0
+E 38: cycles=125  acc= 92%  32<=x<=114  pred=64  true=50  err=+14
+E 33: cycles= 50  acc= 96%  60<=x<=204  pred=124  true=106  err=+18
+E 44: cycles= 54  acc= 96%  74<=x<=224  pred=138  true=109  err=+29
+E 41: cycles=123  acc= 96%  14<=x<=39  pred=25  true=18  err=+7
+E 43: cycles=172  acc= 98%  37<=x<=92  pred=60  true=59  err=+1
+E 39: cycles= 37  acc= 99%  96<=x<=262  pred=168  true=142  err=+26
+E 46: cycles=146  acc= 85%  21<=x<=59  pred=38  true=47  err=-9
+E 50: cycles= 74  acc= 94%  56<=x<=200  pred=117  true=79  err=+38
+E 49: cycles=303  acc=  0%  0<=x<=0  pred=0  true=21  err=-21
+E 53: cycles=164  acc= 93%  27<=x<=69  pred=45  true=26  err=+19
+E 36: cycles=126  acc= 95%  14<=x<=59  pred=32  true=19  err=+13
+E 40: cycles=133  acc= 98%  15<=x<=59  pred=33  true=28  err=+5
+E 37: cycles=121  acc= 93%  17<=x<=48  pred=30  true=21  err=+9
+E 57: cycles=160  acc= 86%  50<=x<=140  pred=87  true=103  err=-16
+E 45: cycles=152  acc= 84%  55<=x<=159  pred=98  true=114  err=-16
+E 55: cycles=113  acc= 90%  67<=x<=200  pred=122  true=137  err=-15
+E 59: cycles= 94  acc= 98%  67<=x<=208  pred=126  true=114  err=+12
+E 58: cycles=176  acc= 86%  22<=x<=53  pred=35  true=37  err=-2
+E 42: cycles=156  acc= 93%  6<=x<=22  pred=13  true=10  err=+3
+E 47: cycles= 73  acc= 94%  58<=x<=197  pred=115  true=135  err=-20
+E 52: cycles=189  acc= 79%  30<=x<=65  pred=45  true=29  err=+16
+E 48: cycles= 78  acc= 93%  56<=x<=195  pred=115  true=92  err=+23
+E 54: cycles=121  acc= 90%  66<=x<=191  pred=116  true=97  err=+19
+E 51: cycles=144  acc= 89%  54<=x<=153  pred=95  true=114  err=-19
+E 64: cycles=168  acc= 98%  21<=x<=56  pred=36  true=28  err=+8
+E 56: cycles=136  acc= 92%  5<=x<=33  pred=17  true=15  err=+2
+E 61: cycles=159  acc= 98%  12<=x<=34  pred=22  true=21  err=+1
+E 65: cycles= 71  acc= 95%  77<=x<=231  pred=143  true=128  err=+15
+E 67: cycles= 71  acc= 95%  73<=x<=226  pred=138  true=77  err=+61
+E 60: cycles=147  acc= 86%  54<=x<=149  pred=93  true=100  err=-7
+E 69: cycles= 54  acc= 96%  74<=x<=225  pred=139  true=121  err=+18
+E 66: cycles=147  acc= 84%  14<=x<=45  pred=27  true=14  err=+13
+E 63: cycles=155  acc= 85%  34<=x<=97  pred=60  true=72  err=-12
+E 62: cycles=232  acc=  0%  0<=x<=0  pred=0  true=54  err=-54
+E 70: cycles=152  acc= 85%  45<=x<=129  pred=79  true=94  err=-15
+E 71: cycles= 68  acc= 97%  72<=x<=228  pred=138  true=118  err=+20
+E 73: cycles=112  acc= 90%  62<=x<=187  pred=112  true=131  err=-19
+E 74: cycles=137  acc= 96%  55<=x<=161  pred=98  true=126  err=-28
+E 75: cycles= 88  acc= 95%  61<=x<=201  pred=118  true=113  err=+5
+E 68: cycles=187  acc= 94%  3<=x<=17  pred=9  true=8  err=+1
+E 76: cycles=205  acc= 75%  3<=x<=18  pred=10  true=10  err=-0
+E 82: cycles=162  acc= 83%  2<=x<=16  pred=8  true=9  err=-1
+E 72: cycles=131  acc= 99%  29<=x<=76  pred=48  true=50  err=-2
+E 85: cycles= 34  acc=100%  87<=x<=244  pred=156  true=118  err=+38
+E 80: cycles=133  acc= 99%  42<=x<=129  pred=78  true=90  err=-12
+E 83: cycles= 73  acc= 94%  68<=x<=217  pred=132  true=137  err=-5
+E 78: cycles= 72  acc= 95%  83<=x<=239  pred=149  true=107  err=+42
+E 79: cycles=101  acc= 96%  52<=x<=171  pred=101  true=63  err=+38
+E 86: cycles=110  acc= 90%  56<=x<=175  pred=104  true=89  err=+15
+E 87: cycles= 56  acc= 97%  80<=x<=239  pred=150  true=116  err=+34
+E 77: cycles=162  acc= 93%  21<=x<=55  pred=36  true=34  err=+2
+E 81: cycles=213  acc= 86%  1<=x<=14  pred=6  true=8  err=-2
+E 84: cycles=172  acc= 98%  32<=x<=87  pred=55  true=58  err=-3
+E 88: cycles= 68  acc= 96%  50<=x<=189  pred=108  true=115  err=-7
+E 90: cycles=146  acc= 84%  13<=x<=43  pred=26  true=28  err=-2
+E 91: cycles=234  acc=  0%  0<=x<=0  pred=0  true=38  err=-38
+E 89: cycles=177  acc= 96%  65<=x<=168  pred=108  true=136  err=-28
+E 92: cycles=150  acc= 84%  8<=x<=36  pred=20  true=20  err=+0
+E 94: cycles=133  acc= 99%  34<=x<=108  pred=63  true=55  err=+8
+E 97: cycles=134  acc= 99%  61<=x<=174  pred=108  true=82  err=+26
+E 95: cycles= 89  acc= 95%  53<=x<=183  pred=106  true=128  err=-22
+E 93: cycles=244  acc=  0%  0<=x<=0  pred=0  true=85  err=-85
+E 98: cycles=121  acc= 90%  37<=x<=116  pred=68  true=59  err=+9
+E 99: cycles= 97  acc= 99%  77<=x<=221  pred=139  true=117  err=+22
+E 96: cycles= 97  acc= 99%  69<=x<=211  pred=128  true=137  err=-9
+E100: cycles=198  acc= 84%  28<=x<=65  pred=44  true=20  err=+24
+
+summary:
+mae:        16.7 cycles
+rmse:       22.6 cycles
+mean error (bias): +5.1 cycles
+90% confident fleet fails within median 147 cycles  (vs median true RUL: 86)
