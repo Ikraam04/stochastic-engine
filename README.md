@@ -61,10 +61,9 @@ Hamilton's equations of motion give us:
 $$\frac{d\theta}{dt} = p \qquad \frac{dp}{dt} = \nabla \log P(\theta \mid D)$$
 
 the gradient acts as a physical force steering the sampler toward high-probability regions. the intractable $P(D)$ cancels exactly in the acceptance ratio — we never compute the normalising constant:
-$$
-r = \exp(H_{\text{old}} - H_{\text{new}})
-= \frac{P(D \mid \theta_{\text{new}})\cdot P(\theta_{\text{new}})} {P(D \mid \theta)\cdot P(\theta)}
-$$
+
+$$r = \exp(H_{\text{old}} - H_{\text{new}})= \frac{P(D \mid \theta_{\text{new}})\cdot P(\theta_{\text{new}})} {P(D \mid \theta)\cdot P(\theta)}$$
+
 
 ---
 
