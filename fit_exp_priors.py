@@ -52,7 +52,7 @@ def robust_stats(arr, label):
           f"(clipped {len(arr)-len(clipped)} outliers, raw range [{arr.min():.3f}, {arr.max():.3f}])")
     return clipped.mean(), clipped.std()
 
-print("\n--- prior estimates (clipped) ---")
+print("\nprior estimates (clipped)")
 mu_alpha, sigma_alpha = robust_stats(alphas, "alpha")
 mu_beta,  sigma_beta  = robust_stats(betas,  "beta ")
 mu_gamma, sigma_gamma = robust_stats(gammas, "gamma")
@@ -74,7 +74,7 @@ plt.tight_layout()
 os.makedirs("results/exponential", exist_ok=True)
 plt.savefig("results/exponential/exp_prior_distributions.png", dpi=120)
 plt.close()
-print("\nsaved results/exponential/exp_prior_distributions.png")
+
 
 # plot 2: a few example fits so we can sanity check the curve shape
 fig, axes = plt.subplots(2, 4, figsize=(16, 7))
@@ -99,4 +99,4 @@ plt.suptitle("exponential fits on training engines — sanity check", fontsize=1
 plt.tight_layout()
 plt.savefig("results/exponential/exp_fit_examples.png", dpi=120)
 plt.close()
-print("saved results/exponential/exp_fit_examples.png")
+
